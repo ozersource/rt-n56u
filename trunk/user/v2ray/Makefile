@@ -1,41 +1,33 @@
 THISDIR = $(shell pwd)
-v2ray_dir="v2ray.com/core/main"
+xray_dir="github.com/xtls/xray-core"
 export GO111MODULE=on
 export GOPROXY=https://goproxy.io
-V2ray_VERSION := 4.31.2
-V2ray_URL := https://codeload.github.com/v2ray/v2ray-core/tar.gz/v$(V2ray_VERSION)
-V2RAY_SED_ARGS:=
-V2RAY_SED_ARGS += \
-	s/_ "v2ray.com\/core\/main\/json"/\/\/ &/; \
-	/\/\/ _ "v2ray.com\/core\/main\/jsonem"/s/\/\/ //;
-V2RAY_SED_ARGS += \
-	s/_ "v2ray.com\/core\/main\/json"/\/\/ &/;
+xray_VERSION := 1.4.2
+xray_URL := https://codeload.github.com/XTLS/xray-core/tar.gz/v$(PKG_VERSION)
 
-all:download_v2 build_extract build_v2ray
+all:download_xray clean build_extract build_xray
 
-download_v2:
-	( if [ ! -f $(THISDIR)/v2ray-core-$(V2ray_VERSION).tar.gz ]; then \
-	curl --create-dirs -L $(V2ray_URL) -o $(THISDIR)/v2ray-core-$(V2ray_VERSION).tar.gz ; \
+download_xray:
+	( if [ ! -f $(THISDIR)/Xray-core-$(xray_VERSION).tar.gz ]; then \
+	curl --create-dirs -L $(xray_URL) -o $(THISDIR)/Xray-core-$(xray_VERSION).tar.gz ; \
 	fi )
 
 build_extract:
-	mkdir -p $(THISDIR)/v2ray.com
+	mkdir -p $(THISDIR)/github.com/xtls/
 	mkdir -p $(THISDIR)/bin
-	( if [ ! -d $(THISDIR)/v2ray.com/core ]; then \
-	tar zxfv $(THISDIR)/v2ray-core-$(V2ray_VERSION).tar.gz -C $(THISDIR)/v2ray.com ; \
-	mv $(THISDIR)/v2ray.com/v2ray-core-$(V2ray_VERSION) $(THISDIR)/v2ray.com/core ; \
+	( if [ ! -d $(THISDIR)/github.com/xtls/xray-core ]; then \
+	tar zxfv $(THISDIR)/Xray-core-$(xray_VERSION).tar.gz -C $(THISDIR)/github.com/xtls ; \
+	mv $(THISDIR)/github.com/xtls/Xray-core-$(xray_VERSION) $(THISDIR)/github.com/xtls/xray-core ; \
 	fi )
 
-build_v2ray:
-	( cd $(THISDIR)/$(v2ray_dir); \
-	sed -i \
-			'$(V2RAY_SED_ARGS)' \
-			distro/all/all.go ; \
-	GOOS=linux GOARCH=mipsle go build -ldflags "-w -s" -o $(THISDIR)/bin/v2ray; \
+build_xray:
+	( cd $(THISDIR)/$(xray_dir); \
+	GOOS=linux GOARCH=mipsle go build -o $(THISDIR)/bin/v2ray -trimpath -ldflags "-s -w -buildid=" ./main; \
+	upx --lzma --best $(THISDIR)/bin/v2ray; \
 	)
 
 clean:
-	rm -rf $(THISDIR)/v2ray.com
+	rm -rf $(THISDIR)/github.com
 	rm -rf $(THISDIR)/bin
 
 romfs:
