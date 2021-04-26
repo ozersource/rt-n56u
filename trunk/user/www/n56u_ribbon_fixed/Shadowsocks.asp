@@ -79,7 +79,12 @@
 			if($j("#v2_tls").is(':checked')){
 			document.getElementById('v2_tls').value=1;
 			showhide_div('row_tj_tls_host', 1);
-			}else{
+			}
+			else if($j("#v2_xtls").is(':checked')){
+			document.getElementById('v2_xtls').value=1;
+			showhide_div('row_tj_tls_host', 1);
+			}
+			else{
 			document.getElementById('v2_tls').value=0;
 			showhide_div('row_tj_tls_host', 0);
 			}
@@ -110,6 +115,14 @@ document.getElementById('btn_ctime').style.display="inline";
 		document.getElementById('btn_ctime').value='正在运行脚本:' + t +"s";
     },1000);
 }
+function clearLog(){
+	document.form.action="apply.cgi";
+	document.form.current_page.value = "Shadowsocks.asp#log";
+	document.form.next_host.value = location.host;
+	document.form.action_mode.value = " ClearssLog ";
+	document.form.submit();
+}
+
 function dtime() {
 clearInterval(c);
 document.getElementById('btn_ctime').value='脚本运行完成!';
@@ -213,6 +226,7 @@ setTimeout('document.getElementById("btn_ctime").style.display="none";',1000);
 			showhide_div('row_v2_net', 0);
 			showhide_div('row_v2_security', 0);
 			showhide_div('row_v2_tls', 0);
+			showhide_div('row_v2_xtls', 0);
 			showhide_div('row_v2_type_tcp', 0);
 			showhide_div('row_v2_type', 0);
 			showhide_div('row_v2_vid', 0);
@@ -240,7 +254,7 @@ setTimeout('document.getElementById("btn_ctime").style.display="none";',1000);
 				showhide_div('row_v2_tls', 1);
 				//showhide_div('row_tj_tls_host', 1);
 				showhide_div('row_ssp_insecure', 1);
-			} else if (b == "v2ray") {
+			} else if (b == "v2ray" || b=="vless") {
 				switch_v2_type();
 				showhide_div('row_v2_aid', 1);
 				showhide_div('row_v2_vid', 1);
@@ -248,6 +262,7 @@ setTimeout('document.getElementById("btn_ctime").style.display="none";',1000);
 				showhide_div('row_v2_net', 1);
 				showhide_div('row_v2_type', 1);
 				showhide_div('row_v2_tls', 1);
+				showhide_div('row_v2_xtls', 1);
 				showhide_div('row_v2_mux', 1);
 				//showhide_div('row_tj_tls_host', 1);
 				showhide_div('row_ssp_insecure', 1);
@@ -381,7 +396,14 @@ setTimeout('document.getElementById("btn_ctime").style.display="none";',1000);
 					$j('#tab_ss_' + arrHashes[i]).parents('li').removeClass('active');
 				}
 			}
+			//refreshlog(curHash);
 			window.location.hash = curHash;
+		}
+		function refreshlog(curHash){
+		
+			if (curHash == '#log'){
+				window.location.reload();
+			}
 		}
 		function getHash() {
 			var curHash = window.location.hash.toLowerCase();
@@ -469,6 +491,7 @@ setTimeout('document.getElementById("btn_ctime").style.display="none";',1000);
 					// 渲染父节点  obj 需要渲染的数据 keyStr key需要去除的字符串
 					var keyStr = "ssconf_basic_json_";
 					var nodeList = document.getElementById("nodeList"); // 获取节点
+					var backupnodeList = document.getElementById("backupnodeList");
 					var unodeList = document.getElementById("u_nodeList"); // 获取节点
 					var s5nodeList = document.getElementById("s5_nodeList"); // 获取节点
 					for (var key in db_ss) { // 遍历对象
@@ -478,8 +501,10 @@ setTimeout('document.getElementById("btn_ctime").style.display="none";',1000);
 							.alias ? optionObj.alias : "名字获取失败"); // 判断下怕获取失败 ，括号是运算的问题
 						// 添加 
 						nodeList.options.add(new Option(text, key.replace(keyStr, ''))); // 通过 replacce把不要的字符去掉
+						backupnodeList.options.add(new Option(text, key.replace(keyStr, ''))); // 通过 replacce把不要的字符去掉
 						unodeList.options.add(new Option(text, key.replace(keyStr, ''))); // 通过 replacce把不要的字符去掉
 						s5nodeList.options.add(new Option(text, key.replace(keyStr, ''))); // 通过 replacce把不要的字符去掉
+						//global_server
 						$j('#nodeList>option').sort(function (a, b) {
 							var aText = $j(a).val() * 1;
 							var bText = $j(b).val() * 1;
@@ -488,6 +513,16 @@ setTimeout('document.getElementById("btn_ctime").style.display="none";',1000);
 							return 0;
 						}).appendTo('#nodeList');
 						$j('#nodeList>option').eq(0).attr("selected", "selected");
+						
+						//backup_server
+						$j('#backupnodeList>option').sort(function (a, b) {
+							var aText = $j(a).val() * 1;
+							var bText = $j(b).val() * 1;
+							if (aText > bText) return -1;
+							if (aText < bText) return 1;
+							return 0;
+						}).appendTo('#backupnodeList');
+						$j('#backupnodeList>option').eq(0).attr("selected", "selected");
 						//udp列表
 						$j('#u_nodeList>option').sort(function (a, b) {
 							var aText = $j(a).val() * 1;
@@ -509,6 +544,7 @@ setTimeout('document.getElementById("btn_ctime").style.display="none";',1000);
 						//$j('#nodeList').selectpicker('val', '<% nvram_get_x("","global_server"); %>'); //主服务器列表默认
 						//$j('#u_nodeList').selectpicker('val', '<% nvram_get_x("","udp_relay_server"); %>'); //UDP服务器列表默认
 						document.form.global_server.value = '<% nvram_get_x("","global_server"); %>';
+						document.form.backup_server.value = '<% nvram_get_x("","backup_server"); %>';
 						document.form.udp_relay_server.value = '<% nvram_get_x("","udp_relay_server"); %>';
 						document.form.socks5_enable.value = '<% nvram_get_x("","socks5_enable"); %>';
 						//}
@@ -682,7 +718,7 @@ setTimeout('document.getElementById("btn_ctime").style.display="none";',1000);
 			document.getElementById("ssp_insecure").checked = false;				
 			document.getElementById("v2_mux").value = 0;
 			document.getElementById("v2_mux").checked = false;
-			document.getElementById("v2_security").value = 'auto';
+			document.getElementById("v2_security").value = 'none';
 			document.getElementById("v2_vmess_id").value = '';
 			document.getElementById("v2_alter_id").value = '';
 			document.getElementById("v2_transport").value = 'tcp';
@@ -691,6 +727,8 @@ setTimeout('document.getElementById("btn_ctime").style.display="none";',1000);
 			document.getElementById("v2_http_path").value = '';
 			document.getElementById("v2_tls").value = 0;
 			document.getElementById("v2_tls").checked = false;
+			document.getElementById("v2_xtls").value = 0;
+			document.getElementById("v2_xtls").checked = false;
 			document.getElementById("ssp_tls_host").value = '';
 			//"v2 tcp"
 			document.getElementById("v2_kcp_guise").value = 'none';
@@ -739,13 +777,13 @@ setTimeout('document.getElementById("btn_ctime").style.display="none";',1000);
 				document.getElementById("ss_method").value = getProperty(ss, 'encrypt_method', 'none');
 				document.getElementById("ss_obfs").value = getProperty(ss, 'obfs', 'plain');
 				document.getElementById("ss_obfs_param").value = getProperty(ss, 'obfs_param', '');
-			} else if (type == "v2ray") {
+			} else if (type == "v2ray" || type=="vless") {
 				var transport = getProperty(ss, 'transport', 'tcp');
 				document.getElementById("ssp_insecure").value = getProperty(ss, 'insecure', 0);
 				document.getElementById("ssp_insecure").checked =  document.getElementById("ssp_insecure").value != 0;				
 				document.getElementById("v2_mux").value = getProperty(ss, 'mux', 0);
 				document.getElementById("v2_mux").checked =  document.getElementById("v2_mux").value != 0;
-				document.getElementById("v2_security").value = getProperty(ss, 'security', 'auto');
+				document.getElementById("v2_security").value = getProperty(ss, 'security', 'none');
 				document.getElementById("v2_vmess_id").value = getProperty(ss, 'vmess_id', '');
 				document.getElementById("v2_alter_id").value = getProperty(ss, 'alter_id', '');
 				document.getElementById("v2_transport").value = transport;
@@ -754,6 +792,8 @@ setTimeout('document.getElementById("btn_ctime").style.display="none";',1000);
 				document.getElementById("v2_http_path").value = getProperty(ss, 'http_path', '');
 				document.getElementById("v2_tls").value = getProperty(ss, 'tls', 0);
 				document.getElementById("v2_tls").checked =  document.getElementById("v2_tls").value != 0;
+				document.getElementById("v2_xtls").value = getProperty(ss, 'xtls', 0);
+				document.getElementById("v2_xtls").checked =  document.getElementById("v2_xtls").value != 0;
 				document.getElementById("ssp_tls_host").value = getProperty(ss, 'tls_host', '');
 				if (transport == "kcp") {
 					document.getElementById("v2_kcp_guise").value = getProperty(ss, 'kcp_guise', 'none');
@@ -943,7 +983,7 @@ setTimeout('document.getElementById("btn_ctime").style.display="none";',1000);
 			var s = document.getElementById(urlname + '-status');
 			if (!s)
 				return false;
-			var ssrurl = prompt("在这里黏贴配置链接 ssr:// | ss:// | vmess:// | trojan://", "");
+			var ssrurl = prompt("在这里黏贴配置链接 ssr:// | ss:// | vmess:// | vless:// | trojan://", "");
 			if (ssrurl == null || ssrurl == "") {
 				s.innerHTML = "<font color='red'>用户取消</font>";
 				return false;
@@ -952,7 +992,7 @@ setTimeout('document.getElementById("btn_ctime").style.display="none";',1000);
 			//var ssu = ssrurl.match(/ssr:\/\/([A-Za-z0-9_-]+)/i);
 			var ssu = ssrurl.split('://');
 			//console.log(ssu.length);
-			if ((ssu[0] != "ssr" && ssu[0] != "ss" && ssu[0] != "vmess" && ssu[0] != "trojan") || ssu[1] == "") {
+			if ((ssu[0] != "ssr" && ssu[0] != "ss" && ssu[0] != "vmess" && ssu[0] != "vless" && ssu[0] != "trojan") || ssu[1] == "") {
 				s.innerHTML = "<font color='red'>无效格式</font>";
 				return false;
 			}
@@ -1015,6 +1055,73 @@ setTimeout('document.getElementById("btn_ctime").style.display="none";',1000);
 					document.getElementById('ssp_name').value = decodeURI(param);
 				}
 				s.innerHTML = "<font color='green'>导入Shadowsocks配置信息成功</font>";
+				return false;
+			}else if (ssu[0] == "vless") {
+				var ssm = {};
+				var sstr = decodeURIComponent(ssu[1]);
+				var ssu = sstr.split('#');
+				ssm["ps"]=ssu[1];				
+				ssu = ssu[0].split('@');
+				ssm["id"]=ssu[0];
+				ssu = ssu[1].split(':');
+				ssm["add"]=ssu[0];
+				ssu = ssu[1].split('?');
+				ssm["port"]=ssu[0];
+
+				var arr = ssu[1].split('&');
+				for (var i = 0; i < arr.length; i++) {
+					var subArr = arr[i].split('=');
+					var key = decodeURIComponent(subArr[0]);
+					var value = decodeURIComponent(subArr[1]);
+					ssm[key] = value;
+				}
+				ssm["net"]=ssm["type"];
+				ssm["ws_host"]=ssm["host"];
+				ssm["ws_path"]=ssm["path"];
+				//ssm["security"]=ssm["encryption"];
+				//document.write(JSON.stringify(ssm, null, "\t"));
+
+				var ploc = sstr.indexOf("/?");
+				document.getElementById('ssp_type').value = "vless";
+				document.getElementById('ssp_type').dispatchEvent(event);
+				
+				document.getElementById('ssp_name').value = ssm.ps;
+				document.getElementById('ssp_server').value = ssm.add;
+				document.getElementById('ssp_prot').value = ssm.port;
+				document.getElementById('v2_alter_id').value = ssm.aid;
+				document.getElementById('v2_vmess_id').value = ssm.id;
+				if (ssm.net == "tcp") {
+					document.getElementById('v2_tcp_guise').value = ssm.type;
+					document.getElementById('v2_http_host').value = ssm.host;
+					document.getElementById('v2_http_path').value = ssm.path;
+				} else {
+					document.getElementById('v2_kcp_guise').value = ssm.type;
+				}
+				document.getElementById('v2_transport').value = ssm.net;
+				document.getElementById('v2_transport').dispatchEvent(event);
+				if (ssm.net == "ws") {
+					document.getElementById('v2_ws_host').value = ssm.host;
+					document.getElementById('v2_ws_path').value = ssm.path;
+				}
+				if (ssm.net == "h2") {
+					document.getElementById('v2_h2_host').value = ssm.host;
+					document.getElementById('v2_h2_path').value = ssm.path;
+				}
+				if (ssm.security == "tls") {
+					document.getElementById('v2_tls').value = 1;
+					document.getElementById('v2_tls').checked = true;
+					//document.getElementById('ssp_insecure').value = 1;
+					//document.getElementById('ssp_insecure').checked = true;
+					document.getElementById('ssp_tls_host').value = ssm.host;
+				}
+				if (ssm.security == "xtls") {
+					document.getElementById('v2_xtls').value = 1;
+					document.getElementById('v2_xtls').checked = true;
+					//document.getElementById('ssp_insecure').value = 1;
+					//document.getElementById('ssp_insecure').checked = true;
+					document.getElementById('ssp_tls_host').value = ssm.host;
+				}
+				s.innerHTML = "<font color='green'>导入vless配置信息成功</font>";
 				return false;
 			} else if (ssu[0] == "trojan") {
 				var ploc = ssu[1].indexOf("#");
@@ -1178,7 +1285,12 @@ setTimeout('document.getElementById("btn_ctime").style.display="none";',1000);
 					password: document.getElementById("ss_password").value,
 					coustom: "1",
 				}
-			} else if (type == "v2ray") {
+			} else if (type == "v2ray" || type=="vless") {
+				
+				if(document.getElementById("v2_xtls").checked){
+					document.getElementById("v2_tls").value=2;
+				}
+
 				var DataObj = {
 					type: document.getElementById("ssp_type").value,
 					alias: document.getElementById("ssp_name").value,
@@ -1249,6 +1361,7 @@ setTimeout('document.getElementById("btn_ctime").style.display="none";',1000);
 			}
 			var ns = {};
 			ns["ssconf_basic_json_" + ids] = post_dbus;
+			//document.write(JSON.stringify(ns, null, "\t"));
 			push_data(ns);
 			console.log(DataObj)
 		}
@@ -1447,6 +1560,16 @@ setTimeout('document.getElementById("btn_ctime").style.display="none";',1000);
 														</th>
 														<td>
 															<select name="global_server" id="nodeList"
+																style="width: 200px;" onchange="showsdlinkList()">
+																<option value="nil">停用</option>
+															</select>
+														</td>
+													</tr>
+																										<tr>
+														<th>备用服务器:
+														</th>
+														<td>
+															<select name="backup_server" id="backupnodeList"
 																style="width: 200px;" onchange="showsdlinkList()">
 																<option value="nil">停用</option>
 															</select>
@@ -1779,6 +1902,7 @@ setTimeout('document.getElementById("btn_ctime").style.display="none";',1000);
 																	<option value="ssr">SSR</option>
 																	<option value="trojan">Trojan</option>
 																	<option value="v2ray">V2ray</option>
+																	<option value="vless">vless</option>
 																	<option value="socks5">SOCKS5</option>
 																</select>
 															</td>
@@ -1957,7 +2081,7 @@ setTimeout('document.getElementById("btn_ctime").style.display="none";',1000);
 															</td>
 														</tr>
 														<tr id="row_v2_vid" style="display:none;">
-															<th width="50%">VmessId (UUID)</th>
+															<th width="50%">(UUID)</th>
 															<td>
 																<input type="text" class="input" size="15"
 																	name="v2_vmess_id" id="v2_vmess_id"
@@ -1971,7 +2095,7 @@ setTimeout('document.getElementById("btn_ctime").style.display="none";',1000);
 																<select name="v2_security" id="v2_security"
 																	class="input" style="width: 200px;">
 																	<option value="auto">AUTO</option>
-																	<option value="none">NONE</option>
+																	<option value="none" selected>NONE</option>
 																	<option value="aes-128-gcm">AES-128-GCM</option>
 																	<option value="chacha20-poly1305">CHACHA20-POLY1305
 																	</option>
@@ -2159,6 +2283,13 @@ setTimeout('document.getElementById("btn_ctime").style.display="none";',1000);
 
 															</td>
 														</tr>
+														<tr id="row_v2_xtls" style="display:none;">
+															<th>XTLS</th>
+															<td>
+																<input type="checkbox" name="v2_xtls" id="v2_xtls" >
+
+															</td>
+														</tr>
 														<tr id="row_tj_tls_host" style="display:none;">
 															<th>TLS Host</th>
 															<td>
@@ -2229,20 +2360,20 @@ setTimeout('document.getElementById("btn_ctime").style.display="none";',1000);
 															</div>
 														</td>
 													</tr>
-													<!--  <tr> <th>启用自动切换</th>
-<td>
-<div class="main_itoggle">
-<div id="ss_turn_on_of">
-<input type="checkbox" id="ss_turn_fake" <% nvram_match_x("", "ss_turn", "1", "value=1 checked"); %><% nvram_match_x("", "ss_turn", "0", "value=0"); %>>
-</div>
-</div>
-<div style="position: absolute; margin-left: -10000px;">
-<input type="radio" value="1" name="ss_turn" id="ss_turn_1" <% nvram_match_x("", "ss_turn", "1", "checked"); %>><#checkbox_Yes#>
-<input type="radio" value="0" name="ss_turn" id="ss_turn_0" <% nvram_match_x("", "ss_turn", "0", "checked"); %>><#checkbox_No#>
-</div>
-</td>
-</tr>
--->
+													<tr> <th>启用自动切换</th>
+																<td>
+																	<div class="main_itoggle">
+																	<div id="ss_turn_on_of">
+																	<input type="checkbox" id="ss_turn_fake" <% nvram_match_x("", "ss_turn", "1", "value=1 checked"); %><% nvram_match_x("", "ss_turn", "0", "value=0"); %>>
+																	</div>
+																	</div>
+																	<div style="position: absolute; margin-left: -10000px;">
+																	<input type="radio" value="1" name="ss_turn" id="ss_turn_1" <% nvram_match_x("", "ss_turn", "1", "checked"); %>><#checkbox_Yes#>
+																	<input type="radio" value="0" name="ss_turn" id="ss_turn_0" <% nvram_match_x("", "ss_turn", "0", "checked"); %>><#checkbox_No#>
+																	</div>
+																</td>
+													</tr>
+
 													<tr>
 														<th width="50%">自动切换检查周期(秒)</th>
 														<td>
@@ -2485,17 +2616,22 @@ setTimeout('document.getElementById("btn_ctime").style.display="none";',1000);
 													<tr>
 														<td colspan="3"
 															style="border-top: 0 none; padding-bottom: 0px;">
-															<textarea rows="21" class="span12"
-																style="height:377px; font-family:'Courier New', Courier, mono; font-size:13px;"
-																readonly="readonly" wrap="off"
-																id="textarea"><% nvram_dump("ssrplus.log",""); %></textarea>
+																	<textarea rows="21" class="span12" name="logtext"
+																		style="height:377px; font-family:'Courier New', Courier, mono; font-size:13px;"
+																		readonly="readonly" wrap="off"
+																		id="ssrplus_log"><% nvram_dump("ssrplus.log",""); %></textarea>
 														</td>
 													</tr>
 													<tr>
 														<td width="15%" style="text-align: left; padding-bottom: 0px;">
-															<input type="button" onClick="location.href=location.href"
+															<input type="button" onClick="refreshlog('#log');"
 																value="<#CTL_refresh#>" class="btn btn-primary"
 																style="width: 200px">
+														</td>
+														<td width="75%" style="text-align: right; padding-bottom: 0px;">
+															<input type="button" onClick="clearLog();" value="<#CTL_clear#>" class="btn btn-primary" style="width: 200px">
+
+																
 														</td>
 													</tr>
 												</table>
