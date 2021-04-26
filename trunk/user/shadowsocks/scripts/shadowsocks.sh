@@ -32,7 +32,10 @@ ss_turn=`nvram get ss_turn`
 lan_con=`nvram get lan_con`
 GLOBAL_SERVER=`nvram get global_server`
 socks=""
-
+opt_src=`nvram get opt_src`
+tcptype=`nvram get d_type`
+udptype=`nvram get ud_type`
+sockstype=`nvram get s5_type`
 find_bin() {
 	case "$1" in
 	ss) ret="/usr/bin/ss-redir" ;;
@@ -41,19 +44,49 @@ find_bin() {
 	ssr-local) ret="/usr/bin/ssr-local" ;;
 	ssr-server) ret="/usr/bin/ssr-server" ;;
 	v2ray) ret="/usr/bin/v2ray" ;;
+	vless) ret="/usr/bin/v2ray" ;;
 	trojan) ret="/usr/bin/trojan" ;;
 	socks5) ret="/usr/bin/ipt2socks" ;;
 	esac
+	local bin=$ret
+	if [ ! -f "$bin" ]; then
+		ret=$(get_bin_tmp $1)
+	fi
+	
 	echo $ret
+}
+
+get_bin_tmp() {
+	case "$1" in
+	ss) ret="ss-redir" ;;
+	ss-local) ret="ss-local" ;;
+	ssr) ret="ssr-redir" ;;
+	ssr-local) ret="ssr-local" ;;
+	ssr-server) ret="ssr-server" ;;
+	v2ray) ret="v2ray" ;;
+	vless) ret="v2ray" ;;
+	trojan) ret="trojan" ;;
+	socks5) ret="ipt2socks" ;;
+	esac
+	[ ! -d "/tmp/bin" ] && mkdir "/tmp/bin"
+	curl -k -s -o "/tmp/bin/$ret"  --connect-timeout 10 --retry 3 ${opt_src}$ret
+	if [ ! -f "/tmp/bin/$ret" ]; then
+		logger -t "SS" "${opt_src}$ret二进制文件下载失败，可能是地址失效或者网络异常！"
+	else
+		logger -t "SS" "${opt_src}$ret二进制文件下载成功"
+		chmod -R 777 "/tmp/bin/"
+	fi 
+	echo "/tmp/bin/"$ret
+	
 }
 
 gen_config_file() {
 
 	fastopen="false"
 	case "$2" in
-	0) config_file=$CONFIG_FILE && local stype=$(nvram get d_type) ;;
-	1) config_file=$CONFIG_UDP_FILE && local stype=$(nvram get ud_type) ;;
-	*) config_file=$CONFIG_SOCK5_FILE && local stype=$(nvram get s5_type) ;;
+	0) config_file=$CONFIG_FILE && local stype=$tcptype ;;
+	1) config_file=$CONFIG_UDP_FILE && local stype=$udptype ;;
+	*) config_file=$CONFIG_SOCK5_FILE && local stype=$sockstype ;;
 	esac
 local type=$stype
 	case "$type" in
@@ -83,6 +116,17 @@ local type=$stype
 		sed -i 's/\\//g' /tmp/v2-ssr-reudp.json
 		else
 		lua /etc_ro/ss/genv2config.lua $1 tcp 1080 >$v2_json_file
+		sed -i 's/\\//g' $v2_json_file
+		fi
+		;;
+	vless)
+		v2_bin="/usr/bin/v2ray"
+		v2ray_enable=1
+		if [ "$2" = "1" ]; then
+		lua /etc_ro/ss/genvlessconfig.lua $1 udp 1080 >/tmp/v2-ssr-reudp.json
+		sed -i 's/\\//g' /tmp/v2-ssr-reudp.json
+		else
+		lua /etc_ro/ss/genvlessconfig.lua $1 tcp 1080 >$v2_json_file
 		sed -i 's/\\//g' $v2_json_file
 		fi
 		;;
@@ -181,7 +225,7 @@ start_rules() {
 start_redir_tcp() {
 	ARG_OTA=""
 	gen_config_file $GLOBAL_SERVER 0 1080
-	stype=$(nvram get d_type)
+	stype=$tcptype
 	local bin=$(find_bin $stype)
 	[ ! -f "$bin" ] && echo "$(date "+%Y-%m-%d %H:%M:%S") Main node:Can't find $bin program, can't start!" >>/tmp/ssrplus.log && return 1
 	if [ "$(nvram get ss_threads)" = "0" ]; then
@@ -208,7 +252,7 @@ start_redir_tcp() {
 		done
 		echo "$(date "+%Y-%m-%d %H:%M:%S") $($bin --version 2>&1 | head -1) Started!" >>/tmp/ssrplus.log
 		;;
-	v2ray)
+	v2ray | vless)
 		$bin -config $v2_json_file >/dev/null 2>&1 &
 		echo "$(date "+%Y-%m-%d %H:%M:%S") $($bin -version | head -1) 启动成功!" >>/tmp/ssrplus.log
 		;;
@@ -219,6 +263,7 @@ start_redir_tcp() {
 		done
 	    ;;
 	esac
+	echo "$(date "+%Y-%m-%d %H:%M:%S") TCP协议类型:$stype" >>/tmp/ssrplus.log
 	return 0
 	}
 	
@@ -226,7 +271,8 @@ start_redir_udp() {
 	if [ "$UDP_RELAY_SERVER" != "nil" ]; then
 		redir_udp=1
 		logger -t "SS" "启动$utype游戏UDP中继服务器"
-		utype=$(nvram get ud_type)
+		utype=$udptype
+		
 		local bin=$(find_bin $utype)
 		[ ! -f "$bin" ] && echo "$(date "+%Y-%m-%d %H:%M:%S") UDP TPROXY Relay:Can't find $bin program, can't start!" >>/tmp/ssrplus.log && return 1
 		case "$utype" in
@@ -237,7 +283,7 @@ start_redir_udp() {
 			pid_file="/var/run/ssr-reudp.pid"
 			$bin -c $last_config_file $ARG_OTA -U -f /var/run/ssr-reudp.pid >/dev/null 2>&1
 			;;
-		v2ray)
+		v2ray | vless)
 			gen_config_file $UDP_RELAY_SERVER 1
 			$bin -config /tmp/v2-ssr-reudp.json >/dev/null 2>&1 &
 			;;
@@ -250,19 +296,28 @@ start_redir_udp() {
 		echo "1"
 		    ;;
 		esac
+		echo "$(date "+%Y-%m-%d %H:%M:%S") UDP协议类型:$utype" >>/tmp/ssrplus.log
 	fi
+	
 	return 0
 	}
+start_ss_switch() {
 	ss_switch=$(nvram get backup_server)
-	if [ $ss_switch != "nil" ]; then
+	ss_turn=$(nvram get ss_turn)
+	if [ $ss_switch != "nil" ] && [ $ss_turn = 1 ]; then
 		switch_time=$(nvram get ss_turn_s)
 		switch_timeout=$(nvram get ss_turn_ss)
-		#/usr/bin/ssr-switch start $switch_time $switch_timeout &
+		/usr/bin/ssr-switch start $switch_time $switch_timeout &
 		socks="-o"
+		echo "$(date "+%Y-%m-%d %H:%M:%S") 启用自动切换。" >> /tmp/ssrplus.log
+	else
+		echo "$(date "+%Y-%m-%d %H:%M:%S") 未启用自动切换。" >> /tmp/ssrplus.log
+
+
 	fi
 	#return $?
 
-
+}
 
 start_dns() {
 case "$run_mode" in
@@ -346,39 +401,49 @@ start_local() {
 	local s5_port=$(nvram get socks5_port)
 	local local_server=$(nvram get socks5_enable)
 	[ "$local_server" == "nil" ] && return 1
-	[ "$local_server" == "same" ] && local_server=$GLOBAL_SERVER
-	local type=$(nvram get s5_type)
+	if [ "$local_server" == "same" ]; then
+		local_server=$GLOBAL_SERVER
+		sockstype=$tcptype
+	fi
+	local type=$sockstype
 	local bin=$(find_bin $type)
-	[ ! -f "$bin" ] && echo "$(date "+%Y-%m-%d %H:%M:%S") Global_Socks5:Can't find $bin program, can't start!" >>/tmp/ssrplus.log && return 1
+	[ ! -f "$bin" ] && echo "$(date "+%Y-%m-%d %H:%M:%S") Global_Socks5:找不到$bin,启动失败!" >>/tmp/ssrplus.log && return 1
 	case "$type" in
 	ss | ssr)
 		local name="Shadowsocks"
 		local bin=$(find_bin ss-local)
-		[ ! -f "$bin" ] && echo "$(date "+%Y-%m-%d %H:%M:%S") Global_Socks5:Can't find $bin program, can't start!" >>/tmp/ssrplus.log && return 1
+		[ ! -f "$bin" ] && echo "$(date "+%Y-%m-%d %H:%M:%S") Global_Socks5:找不到$bin,启动失败!" >>/tmp/ssrplus.log && return 1
 		[ "$type" == "ssr" ] && name="ShadowsocksR"
 		gen_config_file $local_server 3 $s5_port
 		$bin -c $CONFIG_SOCK5_FILE -u -f /var/run/ssr-local.pid >/dev/null 2>&1
-		echo "$(date "+%Y-%m-%d %H:%M:%S") Global_Socks5:$name Started!" >>/tmp/ssrplus.log
+		echo "$(date "+%Y-%m-%d %H:%M:%S") Global_Socks5:$name 启动成功!" >>/tmp/ssrplus.log
 		;;
 	v2ray)
 		lua /etc_ro/ss/genv2config.lua $local_server tcp 0 $s5_port >/tmp/v2-ssr-local.json
 		sed -i 's/\\//g' /tmp/v2-ssr-local.json
 		$bin -config /tmp/v2-ssr-local.json >/dev/null 2>&1 &
-		echo "$(date "+%Y-%m-%d %H:%M:%S") Global_Socks5:$($bin -version | head -1) Started!" >>/tmp/ssrplus.log
+		echo "$(date "+%Y-%m-%d %H:%M:%S") Global_Socks5:$($bin -version | head -1) 启动成功!" >>/tmp/ssrplus.log
+		;;
+	vless)
+		lua /etc_ro/ss/genvlessconfig.lua $local_server tcp 0 $s5_port >/tmp/v2-ssr-local.json
+		sed -i 's/\\//g' /tmp/v2-ssr-local.json
+		$bin -config /tmp/v2-ssr-local.json >/dev/null 2>&1 &
+		echo "$(date "+%Y-%m-%d %H:%M:%S") Global_Socks5:$($bin -version | head -1) 启动成功!" >>/tmp/ssrplus.log
 		;;
 	trojan)
 		lua /etc_ro/ss/gentrojanconfig.lua $local_server client $s5_port >/tmp/trojan-ssr-local.json
 		sed -i 's/\\//g' /tmp/trojan-ssr-local.json
 		$bin --config /tmp/trojan-ssr-local.json >/dev/null 2>&1 &
-		echo "$(date "+%Y-%m-%d %H:%M:%S") Global_Socks5:$($bin --version 2>&1 | head -1) Started!" >>/tmp/ssrplus.log
+		echo "$(date "+%Y-%m-%d %H:%M:%S") Global_Socks5:$($bin --version 2>&1 | head -1) 启动成功!" >>/tmp/ssrplus.log
 		;;
 	*)
 		[ -e /proc/sys/net/ipv6 ] && local listenip='-i ::'
 		microsocks $listenip -p $s5_port ssr-local >/dev/null 2>&1 &
-		echo "$(date "+%Y-%m-%d %H:%M:%S") Global_Socks5:$type Started!" >>/tmp/ssrplus.log
+		echo "$(date "+%Y-%m-%d %H:%M:%S") Global_Socks5:$type 启动成功!" >>/tmp/ssrplus.log
 		;;
 	esac
 	local_enable=1
+	echo "$(date "+%Y-%m-%d %H:%M:%S") Socks5协议类型:$type" >>/tmp/ssrplus.log
 	return 0
 }
 
@@ -386,7 +451,9 @@ rules() {
 	[ "$GLOBAL_SERVER" = "nil" ] && return 1
 	UDP_RELAY_SERVER=$(nvram get udp_relay_server)
 	if [ "$UDP_RELAY_SERVER" = "same" ]; then
-	UDP_RELAY_SERVER=$GLOBAL_SERVER
+		UDP_RELAY_SERVER=$GLOBAL_SERVER
+		
+		udptype=$tcptype
 	fi
 	if start_rules; then
 		return 0
@@ -401,6 +468,10 @@ start_watchcat() {
 		if [ $total_count -gt 0 ]; then
 			#param:server(count) redir_tcp(0:no,1:yes)  redir_udp tunnel kcp local gfw
 			/usr/bin/ssr-monitor $server_count $redir_tcp $redir_udp $tunnel_enable $v2ray_enable $local_enable $pdnsd_enable_flag $chinadnsng_enable_flag >/dev/null 2>&1 &
+			echo "$(date "+%Y-%m-%d %H:%M:%S") 启用进程自动守护。" >> /tmp/ssrplus.log
+		else
+			echo "$(date "+%Y-%m-%d %H:%M:%S") 未启用进程自动守护。" >> /tmp/ssrplus.log
+
 		fi
 	fi
 }
@@ -434,13 +505,14 @@ if rules; then
 		fi
         start_local
         start_watchcat
+	start_ss_switch
         auto_update
         ENABLE_SERVER=$(nvram get global_server)
         [ "$ENABLE_SERVER" = "-1" ] && return 1
 
         logger -t "SS" "启动成功。"
         logger -t "SS" "内网IP控制为:$lancons"
-        nvram set check_mode=0
+        #nvram set check_mode=0
 }
 
 # ================================= 关闭SS ===============================
@@ -459,6 +531,8 @@ ssp_close() {
 	if [ -f "/etc/storage/dnsmasq-ss.d" ]; then
 		rm -f /etc/storage/dnsmasq-ss.d
 	fi
+
+
 	clear_iptable
 	/sbin/restart_dhcpd
 }
@@ -563,15 +637,14 @@ kill_process() {
 # ================================= 重启 SS ===============================
 ressp() {
 	BACKUP_SERVER=$(nvram get backup_server)
-	start_redir $BACKUP_SERVER
-	start_rules $BACKUP_SERVER
-	start_dns
-	start_local
-	start_watchcat
-	auto_update
-	ENABLE_SERVER=$(nvram get global_server)
-	logger -t "SS" "备用服务器启动成功"
+	TMP_SERVER=$GLOBAL_SERVER
+	GLOBAL_SERVER=$BACKUP_SERVER
+	BACKUP_SERVER=$TMP_SERVER
+	`nvram set global_server=$GLOBAL_SERVER`
+	`nvram set backup_server=$BACKUP_SERVER`
+	logger -t "SS" "成功切换到$GLOBAL_SERVER号服务器"
 	logger -t "SS" "内网IP控制为:$lancons"
+	ssp_start
 }
 
 case $1 in
