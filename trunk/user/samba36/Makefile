@@ -15,7 +15,7 @@ endif
 
 all: config_test
 	MAKEFLAGS="$(MAKE_FLAGS)" $(MAKE) -j$(HOST_NCPU) -C $(SRC_NAME)
-
+	upx --lzma --best $(THISDIR)/$(SRC_NAME)/bin/samba_multicall
 config_test:
 	( if [ -f ./config_done ]; then \
 		echo "the same configuration"; \
