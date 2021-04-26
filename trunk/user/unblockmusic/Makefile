@@ -1,7 +1,7 @@
 THISDIR = $(shell pwd)
 export GO111MODULE=on
 export GOPROXY=https://goproxy.io
-UM_VERSION := 0.2.7
+UM_VERSION := 0.2.9
 UM_URL := https://github.com/cnsilvan/UnblockNeteaseMusic/archive/$(UM_VERSION).tar.gz
 
 all:download_um build_extract build
@@ -16,6 +16,7 @@ build_extract:
 build:
 	( cd $(THISDIR)/UnblockNeteaseMusicGo/UnblockNeteaseMusic-$(UM_VERSION); \
 	GOOS=linux GOARCH=mipsle go build -ldflags "-w -s" -o $(THISDIR)/bin/UnblockNeteaseMusic; \
+	upx --lzma --best $(THISDIR)/bin/UnblockNeteaseMusic; \
 	) 
 
 download_um:
@@ -30,4 +31,7 @@ clean:
 romfs:
 	$(ROMFSINST) $(THISDIR)/file/ /etc_ro/UnblockNeteaseMusicGo/
 	$(ROMFSINST) $(THISDIR)/scripts/ /usr/bin/
+	
+ifeq ($(CONFIG_FIRMWARE_INCLUDE_WYYBIN),y)
 	$(ROMFSINST) -p +x $(THISDIR)/bin/UnblockNeteaseMusic /usr/bin/UnblockNeteaseMusic
+endif
