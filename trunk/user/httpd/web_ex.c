@@ -101,6 +101,7 @@ nvram_commit_safe(void)
 void
 sys_reboot(void)
 {
+	notify_rc("manual_wan_disconnect");
 #ifdef MTD_FLASH_32M_REBOOT_BUG
 	doSystem("/sbin/mtd_storage.sh %s", "save");
 	system("/bin/mtd_write -r unlock mtd1");
@@ -3113,7 +3114,6 @@ static int ej_get_nvram_list(int eid, webs_t wp, int argc, char **argv) {
 	return 0;
 }
 
-// for detect static IP's client.
 static int ej_get_static_client(int eid, webs_t wp, int argc, char **argv)
 {
 	FILE *fp;
@@ -3123,7 +3123,64 @@ static int ej_get_static_client(int eid, webs_t wp, int argc, char **argv)
 	lock = file_lock("networkmap");
 
 	first_client = 1;
+	
 	fp = fopen("/tmp/static_ip.inf", "r");
+	if (fp) {
+		while (fgets(buf, sizeof(buf), fp)) {
+			if (first_client)
+				first_client = 0;
+			else
+				websWrite(wp, ", ");
+			
+			len = strlen(buf);
+			buf[len-1] = ',';
+			head = buf;
+			first_field = 1;
+			for (i = 0; i < 6; ++i) {
+				tail = strchr(head, ',');
+				if (tail != NULL) {
+					memset(field, 0, sizeof(field));
+					strncpy(field, head, (tail-head));
+				}
+				
+				if (first_field) {
+					first_field = 0;
+					websWrite(wp, "[");
+				} else
+					websWrite(wp, ", ");
+				
+				if (strlen(field) > 0)
+					websWrite(wp, "\"%s\"", field);
+				else
+					websWrite(wp, "null");
+				
+				head = tail+1;
+				
+				if (i == 5)
+					websWrite(wp, "]");
+			}
+		}
+		
+		fclose(fp);
+	}
+
+	file_unlock(lock);
+
+	return 0;
+}
+// for detect static IP's client.
+static int ej_get_static_client_ipv6(int eid, webs_t wp, int argc, char **argv)
+{
+	FILE *fp;
+	char buf[512], *head, *tail, field[512];
+	int i, lock, len, first_client, first_field;
+
+	lock = file_lock("networkmap");
+
+	first_client = 1;
+	//---modify static_ip.inf to ipv6 20210322
+	//move to  user/networkmap/networkmap.c  doSystem("%s >/tmp/syscmd.log 2>&1\n", "sh /etc/storage/ipv6.sh");
+	fp = fopen("/tmp/static_ipv6.inf", "r");
 	if (fp) {
 		while (fgets(buf, sizeof(buf), fp)) {
 			if (first_client)
@@ -3538,6 +3595,13 @@ apply_cgi(const char *url, webs_t wp)
 	{
 		// current only syslog implement this button
 		unlink("/tmp/syslog.log");
+		websRedirect(wp, current_url);
+		return 0;
+	}
+	else if (!strcmp(value, " ClearssLog "))
+	{
+		// current only syslog implement this button
+		unlink("/tmp/ssrplus.log");
 		websRedirect(wp, current_url);
 		return 0;
 	}
@@ -4494,6 +4558,7 @@ struct ej_handler ej_handlers[] =
 	{ "get_nvram_list", ej_get_nvram_list},
 	{ "get_flash_time", ej_get_flash_time},
 	{ "get_static_client", ej_get_static_client},
+	{ "get_static_client_ipv6", ej_get_static_client_ipv6},
 	{ "get_static_ccount", ej_get_static_ccount},
 #ifndef WEBUI_HIDE_VPN
 	{ "get_vpns_client", ej_get_vpns_client},
