@@ -32,6 +32,6 @@ romfs:
 	$(ROMFSINST) $(THISDIR)/file/ /etc_ro/UnblockNeteaseMusicGo/
 	$(ROMFSINST) $(THISDIR)/scripts/ /usr/bin/
 	
-ifeq ($(CONFIG_FIRMWARE_INCLUDE_WYYBIN),y)
+
 	$(ROMFSINST) -p +x $(THISDIR)/bin/UnblockNeteaseMusic /usr/bin/UnblockNeteaseMusic
-endif
+
