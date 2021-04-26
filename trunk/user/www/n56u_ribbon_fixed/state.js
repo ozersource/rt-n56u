@@ -5,6 +5,7 @@ var lan_proto = '<% nvram_get_x("", "lan_proto_x"); %>';
 var log_float = '<% nvram_get_x("", "log_float_ui"); %>';
 var reboot_schedule_support = '<% nvram_get_x("", "reboot_schedule_enable"); %>';
 var ss_schedule_support = '<% nvram_get_x("", "ss_schedule_enable"); %>';
+var computer_name = '<% nvram_get_x("", "computer_name"); %>';
 var log_stamp = 0;
 var sysinfo = <% json_system_status(); %>;
 var uptimeStr = "<% uptime(); %>";
@@ -361,7 +362,7 @@ function show_banner(L3){
 	bc += '  </tr>\n';
 	bc += '  <tr>\n';
 	bc += '    <td><button type="button" id="commit_btn" class="btn btn-mini" style="width: 114px; height: 21px; outline:0; '+enabledBtnCommit+'" onclick="commit();"><i class="icon icon-fire"></i>&nbsp;<#CTL_Commit#></button></td>\n';
-	bc += '    <td><button type="button" id="logout_btn" class="btn btn-mini" style="height: 21px; outline:0;" title="<#t1Logout#>" onclick="logout();"><i class="icon icon-user"></i></button> <button type="button" id="reboto_btn" class="btn btn-mini" style="height: 21px; outline:0;" title="<#BTN_REBOOT#>" onclick="reboot();"><i class="icon icon-repeat"></i></button> <button type="button" id="shutdown_btn" class="btn btn-mini" style="height: 21px; outline:0;" title="<#BTN_SHUTDOWN#>" onclick="shutdown();"><i class="icon icon-off"></i></button></td>\n';
+	bc += '    <td><button type="button" id="logout_btn" class="btn btn-mini" style="height: 21px; outline:0;" title="<#t1Logout#>" onclick="logout();"><i class="icon icon-user"></i></button> <button type="button" id="shutdown_btn" class="btn btn-mini" style="height: 21px; outline:0;visibility:hidden;" title="<#BTN_SHUTDOWN#>" onclick="shutdown();"><i class="icon icon-off"></i></button> <button type="button" id="reboto_btn" class="btn btn-mini" style="height: 21px; outline:0;" title="<#BTN_REBOOT#>" onclick="reboot();"><i class="icon icon-repeat"></i></button> </td>\n';
 	bc += '  </tr>\n';
 	bc += '</table>\n';
 	bc += '</div>\n';
@@ -1268,7 +1269,8 @@ function inputCtrl(obj, flag){
 // add eagle23
 jQuery(document).ready(function(){
     var $j = jQuery.noConflict();
-
+	
+    $j("#logo").text(computer_name); //add computer_name at logo
     $j("#logo").click(function(){
         location.href = '/';
     });
@@ -1468,7 +1470,10 @@ var w_dnsf = '<% nvram_get_x("", "w_dnsf"); %>';
 var w_ss = '<% nvram_get_x("", "w_ss"); %>';
 var w_men = '<% nvram_get_x("", "w_men"); %>';
 var w_adbyby = '<% nvram_get_x("", "w_adbyby"); %>';
-
+var w_pdnsd = '<% nvram_get_x("", "w_pdnsd"); %>';
+var w_aliddns = '<% nvram_get_x("", "w_aliddns"); %>';
+var w_caddy = '<% nvram_get_x("", "w_caddy"); %>';
+var w_wyy = '<% nvram_get_x("", "w_wyy"); %>';
 if (w_ai==0){
 	menuL1_link[2] = "";
 	menuL1_title[2] = "";
@@ -1520,6 +1525,22 @@ if (w_men==0){
 if (w_adbyby==0){
 	menuL2_link[15] = "";
 	menuL2_title[15] = "";
+}
+if (w_pdnsd==0){
+	menuL2_link[16] = "";
+	menuL2_title[16] = "";
+}
+if (w_aliddns==0){
+	menuL2_link[17] = "";
+	menuL2_title[17] = "";
+}
+if (w_caddy==0){
+	menuL2_link[19] = "";
+	menuL2_title[19] = "";
+}
+if (w_wyy==0){
+	menuL2_link[20] = "";
+	menuL2_title[20] = "";
 }
 (function($){
     var $j = $.noConflict();
