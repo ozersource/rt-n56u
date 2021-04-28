@@ -328,9 +328,9 @@ EOF
 #ip6tables -P OUTPUT ACCEPT
 #ip6tables -P FORWARD ACCEPT
 
-### ipv6防火墙单独规则 3389远程桌面 其它端口按下方规则添加 
-ip6tables -I FORWARD -p tcp --dport 3389 -j ACCEPT
-ip6tables -I FORWARD -p tcp --dport 8829 -j ACCEPT
+### ipv6防火墙单独规则 3389远程桌面 其它端口按下方规则添加 记得去掉#号
+#ip6tables -I FORWARD -p tcp --dport 3389 -j ACCEPT
+#ip6tables -I FORWARD -p tcp --dport 8080 -j ACCEPT
 
 EOF
 		chmod 755 "$script_postf"
