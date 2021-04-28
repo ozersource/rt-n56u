@@ -1006,6 +1006,7 @@
 			{"ss_list","",NULL, EVM_RESTART_SHADOWSOCKS},
 			{"d_server","",NULL, EVM_RESTART_SHADOWSOCKS},
 			{"d_port","",NULL, EVM_RESTART_SHADOWSOCKS},
+			{"backupd_type","",NULL, EVM_RESTART_SHADOWSOCKS},
 			{"d_type","",NULL, EVM_RESTART_SHADOWSOCKS},
 			{"ud_type","",NULL, EVM_RESTART_SHADOWSOCKS},
 			{"s5_type","",NULL, EVM_RESTART_SHADOWSOCKS},
