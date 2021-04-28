@@ -384,20 +384,20 @@ mtk_gpio -d 6 0
 ### \dynv6_hostname - dynv6.com注册的域名
 ### \dynv6_token - dynv6.com接入的token
 ### \dynv6_puship - 1更新,0不更新
-dynv6_hostname='ozersource.dynv6.net'
-dynv6_token='p4BfMXikGbEdLuy9j-PSyBk5HyZi4D'
-dynv6_puship=1
+dynv6_hostname='XXXX.dynv6.net'
+dynv6_token='token'
+dynv6_puship=0
 
 ### \corpid - 企业微信ID 申请页面https://work.weixin.qq.com/
 ### \corpsecret - 企业微信应用密钥
 ### \agentid- 企业微信应用ID
 ### \puship- 1推送,0不推送
 ### \hostport- 路由器远程http端口
-corpid='ww12c91f3c1c7b4b56'
-corpsecret='cnv1N5vuwSbpeBeiHTg1u9qw-w-1hkcS3dOpbw0HUq4'
-agentid=1000003
-hostport=18880
-puship=1
+corpid='corpid'
+corpsecret='corpsecret'
+agentid=1000001
+hostport=80
+puship=0
 
 EOF
 
