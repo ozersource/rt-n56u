@@ -380,7 +380,7 @@ mtk_gpio -d 6 0
 ### \$1 - WAN action (up/down)
 ### \$2 - WAN interface name (e.g. eth3 or ppp0)
 ### \$3 - WAN IPv4 address
-### dynv6.com动态域名自动更新ipv6 申请页面https://dynv6.com/
+### dynv6.com动态域名自动更新ipv6 
 ### \dynv6_hostname - dynv6.com注册的域名
 ### \dynv6_token - dynv6.com接入的token
 ### \dynv6_puship - 1更新,0不更新
@@ -388,9 +388,9 @@ dynv6_hostname='XXXX.dynv6.net'
 dynv6_token='token'
 dynv6_puship=0
 
-### \corpid - 企业微信ID 申请页面https://work.weixin.qq.com/
-### \corpsecret - 企业微信应用密钥
-### \agentid- 企业微信应用ID
+### \corpid - 微信ID 
+### \corpsecret - 微信应用密钥
+### \agentid- 微信应用ID
 ### \puship- 1推送,0不推送
 ### \hostport- 路由器远程http端口
 corpid='corpid'
