@@ -328,9 +328,9 @@ EOF
 #ip6tables -P OUTPUT ACCEPT
 #ip6tables -P FORWARD ACCEPT
 
-### ipv6防火墙单独规则 3389远程桌面 其它端口按下方规则添加 记得去掉#号
-#ip6tables -I FORWARD -p tcp --dport 3389 -j ACCEPT
-#ip6tables -I FORWARD -p tcp --dport 8080 -j ACCEPT
+### ipv6防火墙单独规则 3389远程桌面 其它端口按下方规则添加 
+ip6tables -I FORWARD -p tcp --dport 3389 -j ACCEPT
+ip6tables -I FORWARD -p tcp --dport 8829 -j ACCEPT
 
 EOF
 		chmod 755 "$script_postf"
@@ -380,91 +380,90 @@ mtk_gpio -d 6 0
 ### \$1 - WAN action (up/down)
 ### \$2 - WAN interface name (e.g. eth3 or ppp0)
 ### \$3 - WAN IPv4 address
-### dynv6.com动态域名自动更新ipv6 
+### dynv6.com动态域名自动更新ipv6 申请页面https://dynv6.com/
 ### \dynv6_hostname - dynv6.com注册的域名
 ### \dynv6_token - dynv6.com接入的token
 ### \dynv6_puship - 1更新,0不更新
-dynv6_hostname='XXXX.dynv6.net'
-dynv6_token='token'
+dynv6_hostname='XXXXXXX.dynv6.net'
+dynv6_token='dynv6_token'
 dynv6_puship=0
 
-### \corpid - 微信ID 
-### \corpsecret - 微信应用密钥
-### \agentid- 微信应用ID
+### \corpid - 企业微信ID 申请页面https://work.weixin.qq.com/
+### \corpsecret - 企业微信应用密钥
+### \agentid- 企业微信应用ID
 ### \puship- 1推送,0不推送
 ### \hostport- 路由器远程http端口
 corpid='corpid'
 corpsecret='corpsecret'
-agentid=1000001
+agentid=100000
 hostport=80
 puship=0
 
 EOF
 
-echo "file=\$HOME/.dynv6.addr6" >> "$script_postw"
+echo "if [ \"\$1\" == \"up\" ]; then" >> "$script_postw"
+echo "	file=/tmp/.dynv6.addr6" >> "$script_postw"
+echo "	[ -e \$file ] && old=\`cat \$file\`" >> "$script_postw"
 
-
-echo "[ -e \$file ] && old=\`cat \$file\`" >> "$script_postw"
-
-echo "if [ \"\$dynv6_puship\" -eq 1 ]; then" >> "$script_postw"
-echo "	i=0" >> "$script_postw"
-echo "	while [ -z \"\$address\" ];"   >> "$script_postw"
-echo "	do"  >> "$script_postw"
-echo "		sleep 60"  >> "$script_postw"
-echo "		let i++" >> "$script_postw"
-echo "		address=\`ip -6 addr list scope global \$2 | grep -v ' fd' | sed -n 's/.*inet6 \([0-9a-f:]\+\).*/\1/p' | head -n 1\`" >> "$script_postw"
-echo "		if [ \"\$i\" -eq 5 ];then" >> "$script_postw"
-echo "			address='nil'" >> "$script_postw"
-echo "			break" >> "$script_postw"
-echo "		fi" >> "$script_postw"
-echo "	done"  >> "$script_postw"
-echo "	if [ \"\$address\" != \"nil\" ];then" >> "$script_postw"
-echo "		if [ \"\$old\" = \"\$address\" ]; then" >> "$script_postw"
-echo "			logger -t \"IPV6推送\" \" 地址未变化,不需要推送！\" "  >> "$script_postw"
-echo "			exit" >> "$script_postw"
+echo "	if [ \"\$dynv6_puship\" -eq 1 ]; then" >> "$script_postw"
+echo "		i=0" >> "$script_postw"
+echo "		while [ -z \"\$address\" ];"   >> "$script_postw"
+echo "		do"  >> "$script_postw"
+echo "			sleep 60"  >> "$script_postw"
+echo "			let i++" >> "$script_postw"
+echo "			address=\`ip -6 addr list scope global \$2 | grep -v ' fd' | sed -n 's/.*inet6 \([0-9a-f:]\+\).*/\1/p' | head -n 1\`" >> "$script_postw"
+echo "			if [ \"\$i\" -eq 5 ];then" >> "$script_postw"
+echo "				address='nil'" >> "$script_postw"
+echo "				break" >> "$script_postw"
+echo "			fi" >> "$script_postw"
+echo "		done"  >> "$script_postw"
+echo "		if [ \"\$address\" != \"nil\" ];then" >> "$script_postw"
+echo "			if [ \"\$old\" = \"\$address\" ]; then" >> "$script_postw"
+echo "				logger -t \"IPV6推送\" \" 地址未变化,不需要推送！\" "  >> "$script_postw"
+echo "				exit" >> "$script_postw"
+echo "			fi"  >> "$script_postw"
+echo "			curl -L -s \"https://dynv6.com/api/update?hostname=\${dynv6_hostname}&ipv6=\${address}&token=\${dynv6_token}\"" >> "$script_postw"
+echo "			logger -t \"IPV6推送\" \"dynv6.com更新IP \$address\" "  >> "$script_postw"
 echo "		fi"  >> "$script_postw"
-echo "		curl -L -s \"https://dynv6.com/api/update?hostname=\${dynv6_hostname}&ipv6=\${address}&token=\${dynv6_token}\"" >> "$script_postw"
 echo "	fi"  >> "$script_postw"
-echo "	logger -t \"IPV6推送\" \"dynv6.com更新IP \$address\" "  >> "$script_postw"
-echo "fi"  >> "$script_postw"
 
 echo ""  >> "$script_postw"
 
-echo "if [ \"\$puship\" -eq 1 ]; then" >> "$script_postw"
-echo "	i=0" >> "$script_postw"
-echo "	while [ -z \"\$access_token\" ];"   >> "$script_postw"
-echo "	do"  >> "$script_postw"
-echo "		sleep 60"  >> "$script_postw"
-echo "		let i++" >> "$script_postw"
-echo "		get_access_token=\`curl -L -s \"https://qyapi.weixin.qq.com/cgi-bin/gettoken?corpid=\$corpid&corpsecret=\$corpsecret\"\`" >> "$script_postw"
-echo "		access_token=\`echo \$get_access_token | sed 's/.*\"access_token\":\([^,}]*\).*/\1/' | sed 's/\\\"//g'\`"  >> "$script_postw"
-echo "		if [ \"\$i\" -eq 10 ];then" >> "$script_postw"
-echo "			hostIP6='上网'\${i}'分钟，未得到access_token!'" >> "$script_postw"
-echo "			break" >> "$script_postw"
-echo "		fi" >> "$script_postw"
-echo "	done"  >> "$script_postw"
+echo "	if [ \"\$puship\" -eq 1 ]; then" >> "$script_postw"
+echo "		i=0" >> "$script_postw"
+echo "		while [ -z \"\$access_token\" ];"   >> "$script_postw"
+echo "		do"  >> "$script_postw"
+echo "			sleep 60"  >> "$script_postw"
+echo "			let i++" >> "$script_postw"
+echo "			get_access_token=\`curl -L -s \"https://qyapi.weixin.qq.com/cgi-bin/gettoken?corpid=\$corpid&corpsecret=\$corpsecret\"\`" >> "$script_postw"
+echo "			access_token=\`echo \$get_access_token | sed 's/.*\"access_token\":\([^,}]*\).*/\1/' | sed 's/\\\"//g'\`"  >> "$script_postw"
+echo "			if [ \"\$i\" -eq 10 ];then" >> "$script_postw"
+echo "				hostIP6='上网'\${i}'分钟，未得到access_token!'" >> "$script_postw"
+echo "				break" >> "$script_postw"
+echo "			fi" >> "$script_postw"
+echo "		done"  >> "$script_postw"
 
-echo "	Ntime=\`date +%H:%M\`" >> "$script_postw"
-echo "	Rname=\`nvram get computer_name\`" >> "$script_postw"
-echo "	i=0" >> "$script_postw"
-echo "	while [ -z \"\$hostIP6\" ];"   >> "$script_postw"
-echo "	do"  >> "$script_postw"
-echo "		sleep 60"  >> "$script_postw"
-echo "		let i++" >> "$script_postw"
-echo "		address=\`ip -6 addr list scope global \$2 | grep -v ' fd' | sed -n 's/.*inet6 \([0-9a-f:]\+\).*/\1/p' | head -n 1\`"  >> "$script_postw"
-echo "		hostIP6=\`echo \$address | sed -n 's/^.*/http:\/\/[&]:'\${hostport}' /p'\`"  >> "$script_postw"
-echo "		if [ \"\$i\" -eq 5 ];then" >> "$script_postw"
-echo "			hostIP6='上网'\${i}'分钟，未得到ipv6!'" >> "$script_postw"
-echo "			break" >> "$script_postw"
-echo "		fi" >> "$script_postw"
-echo "	done"  >> "$script_postw"
+echo "		Ntime=\`date +%H:%M\`" >> "$script_postw"
+echo "		Rname=\`nvram get computer_name\`" >> "$script_postw"
+echo "		i=0" >> "$script_postw"
+echo "		while [ -z \"\$hostIP6\" ];"   >> "$script_postw"
+echo "		do"  >> "$script_postw"
+echo "			sleep 60"  >> "$script_postw"
+echo "			let i++" >> "$script_postw"
+echo "			address=\`ip -6 addr list scope global \$2 | grep -v ' fd' | sed -n 's/.*inet6 \([0-9a-f:]\+\).*/\1/p' | head -n 1\`"  >> "$script_postw"
+echo "			hostIP6=\`echo \$address | sed -n 's/^.*/http:\/\/[&]:'\${hostport}' /p'\`"  >> "$script_postw"
+echo "			if [ \"\$i\" -eq 5 ];then" >> "$script_postw"
+echo "				hostIP6='上网'\${i}'分钟，未得到ipv6!'" >> "$script_postw"
+echo "				break" >> "$script_postw"
+echo "			fi" >> "$script_postw"
+echo "		done"  >> "$script_postw"
 echo "		if [ \"\$old\" = \"\$address\" ]; then" >> "$script_postw"
 echo "			logger -t \"IPV6推送\" \" 地址未变化,不需要推送！\" "  >> "$script_postw"
 echo "			exit" >> "$script_postw"
 echo "		fi"  >> "$script_postw"
-echo "	if [ \"\$dynv6_puship\" -eq 1 ]; then" >> "$script_postw"
-echo "		hostIP6=\${hostIP6}\"\n\n http://\"\${dynv6_hostname}\":\"\${hostport}" >> "$script_postw"
-echo "	fi" >> "$script_postw"
+echo "		if [ \"\$dynv6_puship\" -eq 1 ]; then" >> "$script_postw"
+echo "			hostIP6=\${hostIP6}\"\n\n http://\"\${dynv6_hostname}\":\"\${hostport}" >> "$script_postw"
+echo "		fi" >> "$script_postw"
 desp='{"touser" : "@all","toparty" : "","totag" : "","msgtype" : "text","agentid" : '
 desp=${desp}"'\${agentid}'"
 desp=${desp}',"text" : {"content" : "【'
@@ -472,16 +471,16 @@ desp=${desp}"'\${Ntime}' '\${Rname}'"
 desp=${desp}' IPV6变动】\n\n'
 desp=${desp}"'\${hostIP6}'"
 desp=${desp}'"},"safe":0,"enable_id_trans": 0,"enable_duplicate_check": 0,"duplicate_check_interval": 1800}'
-echo "	desp='"${desp}"'"  >> "$script_postw"
-echo "	curl -H \"Content-Type: application/json;charset=utf-8\" -X POST -L -s  -d \"\${desp}\"  \"https://qyapi.weixin.qq.com/cgi-bin/message/send?access_token=\${access_token}\" "   >> "$script_postw" 
-echo "	logger -t \"IPV6推送\" \"微信推送 \$hostIP6\" "  >> "$script_postw"
-echo "fi"  >> "$script_postw"
+echo "		desp='"${desp}"'"  >> "$script_postw"
+echo "		curl -H \"Content-Type: application/json;charset=utf-8\" -X POST -L -s  -d \"\${desp}\"  \"https://qyapi.weixin.qq.com/cgi-bin/message/send?access_token=\${access_token}\" "   >> "$script_postw" 
+echo "		logger -t \"IPV6推送\" \"微信推送 \$hostIP6\" "  >> "$script_postw"
+echo "	fi"  >> "$script_postw"
 echo ""  >> "$script_postw"
 echo "	if [ ! -z \"\$address\" ]; then" >> "$script_postw"
 echo "		echo \$address > \$file " >> "$script_postw"
 echo "		logger -t \"IPV6推送\" \" \$address写入文件\$file！\" "  >> "$script_postw"
 echo "	fi"  >> "$script_postw"
-
+echo "fi"  >> "$script_postw"
 	chmod 755 "$script_postw"
 fi
 
