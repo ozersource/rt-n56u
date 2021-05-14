@@ -329,8 +329,8 @@ EOF
 #ip6tables -P FORWARD ACCEPT
 
 ### ipv6防火墙单独规则 3389远程桌面 其它端口按下方规则添加 
-ip6tables -I FORWARD -p tcp --dport 3389 -j ACCEPT
-ip6tables -I FORWARD -p tcp --dport 8829 -j ACCEPT
+#ip6tables -I FORWARD -p tcp --dport 3389 -j ACCEPT
+#ip6tables -I FORWARD -p tcp --dport 8829 -j ACCEPT
 
 EOF
 		chmod 755 "$script_postf"
@@ -402,6 +402,7 @@ puship=0
 EOF
 
 echo "if [ \"\$1\" == \"up\" ]; then" >> "$script_postw"
+echo "	old=\"1\"" >> "$script_postw"
 echo "	file=/tmp/.dynv6.addr6" >> "$script_postw"
 echo "	[ -e \$file ] && old=\`cat \$file\`" >> "$script_postw"
 
